@@ -10,6 +10,6 @@ clean:
 
 test:
 	source venv/bin/activate; \
-	py.test --verbose --color=yes ./tests; \
+	py.test --verbose --color=yes ./dbscan/tests; \
 
 .PHONY: clean test install-deps
