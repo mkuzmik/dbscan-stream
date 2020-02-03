@@ -54,7 +54,7 @@ class DBScanStream:
             self.__search_neighbourhood(X)
         else:
             self.labels_ = np.concatenate([self.labels_, np.ones(len(X)) * -1])
-            self.search = NeighboursSearch(self.search.get_data() + X, self.eps, self.min_samples)
+            self.search = NeighboursSearch(np.concatenate([self.search.get_data(), X]), self.eps, self.min_samples)
 
     def __partial_fit_single_point(self, X, sample_weight=None):
         neighbours_indices = self.search.get_neighbours(X)
