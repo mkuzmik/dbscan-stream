@@ -1,7 +1,6 @@
 import numpy as np
-from scipy.spatial import ckdtree
+from sklearn.neighbors import KDTree
 from functools import reduce
-import sys
 
 
 class DBScanStream:
@@ -87,15 +86,15 @@ class NeighboursSearch:
     def __init__(self, data, eps, min_samples):
         self.eps = eps
         self.min_samples = min_samples
-        self.ckdtree = ckdtree.cKDTree(data, leafsize=100)
+        self.kdtree = KDTree(np.array(data), leaf_size=100)
 
     def get_data(self):
-        return list(self.ckdtree.data)
+        return list(self.kdtree.data)
 
     def get_neighbours(self, point):
         """
         :param point: Point, which neighbours we are looking for
         :return: List of neighbours indices in self.data
         """
-        neighbours_indices = self.ckdtree.query(point, k=self.min_samples, distance_upper_bound=self.eps)[1]
-        return list(filter(lambda x: x != self.ckdtree.n, neighbours_indices))
+        neighbours = self.kdtree.query_radius([point], r=self.eps)
+        return neighbours[0]
