@@ -49,7 +49,7 @@ class DBScanStream:
     def __search_neighbourhood(self, X, sample_weight=None):
         self.cluster_counter = 0
         self.labels_ = np.ones(len(X)) * -1
-        self.search = NeighboursSearch(X, self.eps, self.min_samples, self.metric)
+        self.search = NeighboursSearch(X, self.eps, self.min_samples, self.metric, self.leaf_size)
 
         assert sample_weight is None or len(sample_weight) == len(X)
         self.sample_weight = sample_weight if sample_weight is not None else np.ones(len(X))
@@ -60,7 +60,7 @@ class DBScanStream:
         else:
             self.labels_ = np.concatenate([self.labels_, np.ones(len(X)) * -1])
             self.search = NeighboursSearch(np.concatenate([self.search.get_data(), X]), self.eps, self.min_samples,
-                                           self.metric)
+                                           self.metric, self.leaf_size)
             self.sample_weight = np.concatenate([self.sample_weight,
                                                  sample_weight if sample_weight is not None else np.ones(len(X))])
 
@@ -91,10 +91,10 @@ class DBScanStream:
 
 
 class NeighboursSearch:
-    def __init__(self, data, eps, min_samples, metric):
+    def __init__(self, data, eps, min_samples, metric, leaf_size):
         self.eps = eps
         self.min_samples = min_samples
-        self.kdtree = KDTree(np.array(data), leaf_size=100, metric=metric)
+        self.kdtree = KDTree(np.array(data), leaf_size=leaf_size, metric=metric)
 
     def get_data(self):
         return list(self.kdtree.data)

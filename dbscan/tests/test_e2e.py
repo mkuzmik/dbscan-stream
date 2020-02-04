@@ -1,6 +1,5 @@
 import numpy as np
 import pytest
-
 from dbscan.core import DBScanStream
 
 
@@ -156,10 +155,38 @@ def test_negative_sample_weights():
     assert np.array_equal(clustering.labels_, np.array([0, 0, 1, 1, -1, 2]))
 
 
-def test_invalid_metric():
+def test_two_clusters_with_outliers_manhattan_metric():
+    # given
+    dbscan = DBScanStream(eps=3, min_samples=2, metric='manhattan')
+    X = np.array([[1, 1],
+                  [2, 2],
+                  [5, 6],
+                  [6, 7],
+                  [-1, -2],
+                  [56, 34]])
+
+    # when
+    result = dbscan.fit_predict(X)
+
+    # then
+    assert np.array_equal(result, np.array([0, 0, 1, 1, -1, -1]))
+
+
+def test_sample_weight_consistency():
+    # given
+    dbscan = DBScanStream(eps=1.2, min_samples=5)
+    X = np.array([[1, 1]])
+    sample_weight = np.array([1, -1, 3, 1, 2])
+
+    # when (sample weights shape is not consistent with input data)
     with pytest.raises(AssertionError):
-        # when (invalid metric is passed as parameter)
-        DBScanStream(eps=1.2, min_samples=5, metric='non existing metric')
+        dbscan.fit(X, sample_weight)
+
+
+def test_invalid_metric():
+    # when (DBScan is initialized with invalid metric)
+    with pytest.raises(AssertionError):
+        DBScanStream(eps=5, min_samples=5, metric='non existing')
 
 
 if __name__ == '__main__':
