@@ -29,46 +29,51 @@ class DBScanStream:
         self.cluster_counter = 0
 
     def fit(self, X, sample_weight=None):
-        # init all points as outliers
-        self.labels_ = np.ones(len(X)) * -1
-
-        # reset cluster counter
-        self.cluster_counter = 0
-
-        # init search tree
-        self.search = NeighboursSearch(X, self.eps, self.min_samples)
-
+        self.__search_neighbourhood(X)
         for point in X:
-            neighbours_indices = self.search.get_neighbours(point)
-
-            if len(neighbours_indices) >= self.min_samples:
-                neighbours_clusters = map(
-                    lambda neighbour_idx: self.labels_[neighbour_idx], neighbours_indices)
-                neighbours_clusters_without_outliers = filter(
-                    lambda neighbour_cluster: neighbour_cluster != -1, neighbours_clusters)
-                min_neighbour_cluster = reduce(lambda a, b: a if a < b else b, neighbours_clusters_without_outliers,
-                                               self.cluster_counter)
-                self.cluster_counter = self.cluster_counter + 1 if min_neighbour_cluster == self.cluster_counter \
-                    else self.cluster_counter
-                self.labels_[neighbours_indices] = min_neighbour_cluster
-
+            self.__partial_fit_single_point(point)
         return self
 
     def partial_fit(self, X, sample_weight=None):
-        # TODO
+        self.__update_neighbourhood(X)
+        for point in X:
+            self.__partial_fit_single_point(point)
         return self
 
     def fit_predict(self, X, sample_weight=None):
-        # TODO
-        pass
+        self.fit(X, sample_weight)
+        return self.labels_
 
-    def get_params(self, deep=True):
-        # TODO? - Dunno whether this needs to be implemented
-        pass
+    def __search_neighbourhood(self, X):
+        self.cluster_counter = 0
+        self.labels_ = np.ones(len(X)) * -1
+        self.search = NeighboursSearch(X, self.eps, self.min_samples)
 
-    def set_params(self, **params):
-        # TODO? - Dunno whether this needs to be implemented
-        pass
+    def __update_neighbourhood(self, X):
+        if self.labels_ is None or self.search is None:
+            self.__search_neighbourhood(X)
+        else:
+            self.labels_ = np.concatenate([self.labels_, np.ones(len(X)) * -1])
+            self.search = NeighboursSearch(np.concatenate([self.search.get_data(), X]), self.eps, self.min_samples)
+
+    def __partial_fit_single_point(self, X, sample_weight=None):
+        neighbours_indices = self.search.get_neighbours(X)
+        if len(neighbours_indices) >= self.min_samples:
+            neighbours_clusters = [self.labels_[neighbour_idx] for neighbour_idx in neighbours_indices]
+            neighbours_clusters_without_outliers = filter(
+                lambda cluster_label: cluster_label != -1,
+                neighbours_clusters
+            )
+            min_neighbour_cluster = reduce(
+                lambda a, b: a if a < b else b,
+                neighbours_clusters_without_outliers,
+                self.cluster_counter
+            )
+
+            if min_neighbour_cluster == self.cluster_counter:
+                self.cluster_counter += 1
+
+            self.labels_[neighbours_indices] = min_neighbour_cluster
 
 
 class NeighboursSearch:
@@ -76,6 +81,9 @@ class NeighboursSearch:
         self.eps = eps
         self.min_samples = min_samples
         self.ckdtree = ckdtree.cKDTree(data, leafsize=100)
+
+    def get_data(self):
+        return list(self.ckdtree.data)
 
     def get_neighbours(self, point):
         """
