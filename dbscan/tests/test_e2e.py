@@ -92,11 +92,68 @@ def test_partial_fit_in_batches_of_two_clusters_with_outliers():
 
     # when
     for i in range(0, len(X), 2):
-        dbscan.partial_fit(X[i:i+2])
+        dbscan.partial_fit(X[i:i + 2])
 
     # then (outliers label is -1)
     assert np.array_equal(dbscan.labels_, np.array([0, 0, 1, 1, -1, -1]))
 
 
+def test_two_clusters_with_same_sample_weights():
+    # given
+    dbscan = DBScanStream(eps=1.42, min_samples=4)
+    X = np.array([[1, 1],
+                  [2, 2],
+                  [5, 6],
+                  [6, 7],
+                  [-1, -2],
+                  [56, 34]])
+
+    sample_weight = np.array([2, 2, 2, 2, 2, 2])
+
+    # when
+    clustering = dbscan.fit(X, sample_weight)
+
+    # then (outliers label is -1)
+    assert np.array_equal(clustering.labels_, np.array([0, 0, 1, 1, -1, -1]))
+
+
+def test_different_sample_weights():
+    # given
+    dbscan = DBScanStream(eps=1.42, min_samples=4)
+    X = np.array([[1, 1],
+                  [2, 2],
+                  [5, 6],
+                  [6, 7],
+                  [-1, -2],
+                  [56, 34]])
+
+    sample_weight = np.array([2, 2, 1, 2, 2, 2])
+
+    # when
+    clustering = dbscan.fit(X, sample_weight)
+
+    # then (outliers label is -1)
+    assert np.array_equal(clustering.labels_, np.array([0, 0, -1, -1, -1, -1]))
+
+
+def test_negative_sample_weights():
+    # given
+    dbscan = DBScanStream(eps=1.42, min_samples=2)
+    X = np.array([[1, 1],
+                  [2, 2],
+                  [5, 6],
+                  [6, 7],
+                  [-1, -2],
+                  [56, 34]])
+
+    sample_weight = np.array([1, 1, -1, 3, 1, 2])
+
+    # when
+    clustering = dbscan.fit(X, sample_weight)
+
+    # then (outliers label is -1)
+    assert np.array_equal(clustering.labels_, np.array([0, 0, 1, 1, -1, 2]))
+
+
 if __name__ == '__main__':
-    test_two_clusters_with_outliers()
+    test_two_clusters_with_same_sample_weights()

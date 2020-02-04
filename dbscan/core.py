@@ -27,15 +27,16 @@ class DBScanStream:
         self.labels_ = np.array([])
         self.search = None
         self.cluster_counter = 0
+        self.sample_weight = np.array([])
 
     def fit(self, X, sample_weight=None):
-        self.__search_neighbourhood(X)
+        self.__search_neighbourhood(X, sample_weight)
         for point in X:
             self.__partial_fit_single_point(point)
         return self
 
     def partial_fit(self, X, sample_weight=None):
-        self.__update_neighbourhood(X)
+        self.__update_neighbourhood(X, sample_weight)
         for point in X:
             self.__partial_fit_single_point(point)
         return self
@@ -44,21 +45,27 @@ class DBScanStream:
         self.fit(X, sample_weight)
         return self.labels_
 
-    def __search_neighbourhood(self, X):
+    def __search_neighbourhood(self, X, sample_weight=None):
         self.cluster_counter = 0
         self.labels_ = np.ones(len(X)) * -1
         self.search = NeighboursSearch(X, self.eps, self.min_samples)
 
-    def __update_neighbourhood(self, X):
+        assert sample_weight is None or len(sample_weight) == len(X)
+        self.sample_weight = sample_weight if sample_weight is not None else np.ones(len(X))
+
+    def __update_neighbourhood(self, X, sample_weight):
         if self.labels_ is None or self.search is None:
-            self.__search_neighbourhood(X)
+            self.__search_neighbourhood(X, sample_weight)
         else:
             self.labels_ = np.concatenate([self.labels_, np.ones(len(X)) * -1])
             self.search = NeighboursSearch(np.concatenate([self.search.get_data(), X]), self.eps, self.min_samples)
+            self.sample_weight = np.concatenate([self.sample_weight,
+                                                 sample_weight if sample_weight is not None else np.ones(len(X))])
 
-    def __partial_fit_single_point(self, X, sample_weight=None):
+    def __partial_fit_single_point(self, X):
         neighbours_indices = self.search.get_neighbours(X)
-        if len(neighbours_indices) >= self.min_samples:
+        neighbours_weights = self.sample_weight[neighbours_indices]
+        if sum(neighbours_weights) >= self.min_samples:
             neighbours_clusters = [self.labels_[neighbour_idx] for neighbour_idx in neighbours_indices]
             neighbours_clusters_without_outliers = filter(
                 lambda cluster_label: cluster_label != -1,
