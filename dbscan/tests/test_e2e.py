@@ -1,4 +1,5 @@
 import numpy as np
+import pytest
 
 from dbscan.core import DBScanStream
 
@@ -153,6 +154,12 @@ def test_negative_sample_weights():
 
     # then (outliers label is -1)
     assert np.array_equal(clustering.labels_, np.array([0, 0, 1, 1, -1, 2]))
+
+
+def test_invalid_metric():
+    with pytest.raises(AssertionError):
+        # when (invalid metric is passed as parameter)
+        DBScanStream(eps=1.2, min_samples=5, metric='non existing metric')
 
 
 if __name__ == '__main__':
